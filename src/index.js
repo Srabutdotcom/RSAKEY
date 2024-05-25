@@ -2,7 +2,7 @@ import { ASN1 } from "npm:@lapo/asn1js"
 import { Base64 } from "npm:@lapo/asn1js/base64.js"
 import { Defs } from "npm:@lapo/asn1js/defs.js"
 import bigInt from 'npm:big-integer'
-import { validate } from '../../utils/validate.js'
+import { validate } from 'https://deno.land/x/validatevalue@v1.0.2/mod.js'
 import * as sha256 from "@stablelib/sha256"
 import * as sha384 from "@stablelib/sha384"
 import * as sha512 from "@stablelib/sha512"
@@ -588,4 +588,4 @@ function checkFirstBitsInFirstOctetsIs0(maskedDb, emLen, emBits) {
    return true;
 }
 
-//`esbuild ./index.js --bundle --minify --format=esm --target=esnext --outfile=../dist/RSAKEY.js "--external:npm*" "--external:@*"`
+//`esbuild ./index.js --bundle --minify --format=esm --target=esnext --outfile=../dist/RSAKEY.js "--external:npm*" "--external:@*" "--external:https*"`

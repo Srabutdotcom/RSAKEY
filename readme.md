@@ -18,6 +18,7 @@ This document explains the `RSAKEY` class, which provides functionalities for si
 **1. Constructor:**
 
 ```javascript
+import { RSAKEY } from './dist/RSAKEY.js'
 const rsaKey = new RSAKEY(privateKeyPemString, options);
 ```
 
