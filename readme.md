@@ -62,7 +62,7 @@ const signature = rsaKey.sign(message);
 const publicKeyPem = '-----BEGIN RSA PUBLIC KEY-----...\n-----END RSA PUBLIC KEY-----';
 const isValid = rsaKey.verify(message, signature, publicKeyPem);
 
-if (isValid) {
+if (isValid=='consistent') {
   console.log('Signature is valid!');
 } else {
   console.error('Signature verification failed!');
@@ -74,4 +74,10 @@ This `RSAKEY` class provides a convenient way to implement secure signing and ve
 ### Notes
 
 * Please let me know for any improvement or feedback.
+
+** Sponsorship **
+I need Sponsorship to maintain and create other codes.
+Just click one of the following links
+- https://github.com/sponsors/Srabutdotcom
+- https://paypal.me/aiconeid
 
