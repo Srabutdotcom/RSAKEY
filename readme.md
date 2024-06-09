@@ -23,7 +23,7 @@ import { RSAKEY } from 'https://deno.land/x/rsakey/mod.js'
 const rsaKey = new RSAKEY(privateKeyPemString, options);
 ```
 
-* `privateKeyPemString`: A string containing the private key in PEM format.
+* `privateKeyPemString`: A string containing the private key in PEM format. Support PKCS-8 and PKCS-1 format.
 * `options` (optional): An object with the following properties (defaults provided):
     * `sha`: {number} The desired hashing algorithm (`256`, `384`, or `512`; defaults to `256`).
     * `saltLength`: {number} The salt length for PSS padding (defaults to `hash.length/8`).

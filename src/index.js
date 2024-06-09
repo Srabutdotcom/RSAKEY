@@ -32,36 +32,32 @@ export class RSAKey {
       // the asn1 object from uint8array
       this.asn1 = ASN1.decode(this.enc);
       // get type and key
-      const { type, key } = extractKey(this.asn1);
-      if (type.name !== 'RSAPrivateKey') return TypeError(`Expected RSAPrivateKey but got ${type.name}`);
-
-      this.type = type;
-      this.key = key;
+      this.key = parseKey(this.asn1);
 
       // modulus n in uint8array
       this.nUint8 = this.component('n')
 
       // version as 
-      this.version = key.sub[0].content();
-
+      this.version = this.key.getContent(0)//key.sub[0].content();
+      
       /** @type {bigInt} modulus - n */
-      this.n = bigInt(key.sub[1].content().split(/\n/)[1]);
+      this.n = this.key.getContent(1)//bigInt(key.sub[1].content().split(/\n/)[1]);
 
       /** @type {bigInt} public exponent - e */
-      this.e = bigInt(key.sub[2].content());
+      this.e = bigInt(this.key.sequence[2].content())//bigInt(key.sub[2].content());
 
       /** @type {bigInt} private exponent - d */
-      this.d = bigInt(key.sub[3].content().split(/\n/)[1]);
+      this.d = this.key.getContent(3)//bigInt(key.sub[3].content().split(/\n/)[1]);
       // prime1 - first factor - p
-      this.p = bigInt(key.sub[4].content().split(/\n/)[1]);
+      this.p = this.key.getContent(4)//bigInt(key.sub[4].content().split(/\n/)[1]);
       // prime2 - second factor - q
-      this.q = bigInt(key.sub[5].content().split(/\n/)[1]);
+      this.q = this.key.getContent(5)//bigInt(key.sub[5].content().split(/\n/)[1]);
       // exponent1 - first factor's CRT exponent - dP
-      this.dP = bigInt(key.sub[6].content().split(/\n/)[1]);
+      this.dP = this.key.getContent(6)//bigInt(key.sub[6].content().split(/\n/)[1]);
       // exponent2 - second factor's CRT exponent - dQ
-      this.dQ = bigInt(key.sub[7].content().split(/\n/)[1]);
+      this.dQ = this.key.getContent(7)//bigInt(key.sub[7].content().split(/\n/)[1]);
       // coefficient - CRT coefficient - qInv
-      this.qInv = bigInt(key.sub[8].content().split(/\n/)[1]);//console.log('line 47')
+      this.qInv = this.key.getContent(8)//bigInt(key.sub[8].content().split(/\n/)[1]);//console.log('line 47')
 
       // set options for sha and saltLength if provided
       if (isDefined(options) && validate(options, [{ sha: 256, saltLength: 32 }])) {
@@ -92,9 +88,9 @@ export class RSAKey {
       } else if (typeof (component) == 'string') {
          index = componentMap.find(e => e.includes(component.toLowerCase()))?.split('-')[1]
       } else { return 'Error: expected number or string of component' }
-
-      const { enc, pos } = this.key.sub[index].stream;
-      const { header, length } = this.key.sub[index];
+      
+      const { enc, pos } = this.key.sequence[index].stream;
+      const { header, length } = this.key.sequence[index];
 
       // check zerro padding
       const start = pos + header
@@ -372,7 +368,7 @@ function isPrivateKeyPemString(value) {
 
    // Check for PEM header and footer lines (case-insensitive)
    // const pemRegex = /^-----BEGIN (?:CERTIFICATE|PUBLIC KEY|PRIVATE KEY|RSA PRIVATE KEY)-----(.*?)-----END (?:CERTIFICATE|PUBLIC KEY|PRIVATE KEY|RSA PRIVATE KEY)-----$/i;
-   const pemRegex = /^(-----BEGIN (RSA PRIVATE|PRIVATE) KEY-----\n?(?:[A-Za-z0-9+/=]+\n?)*-----END (RSA PRIVATE|PRIVATE) KEY-----)\n?$/;
+   const pemRegex = /^(-----BEGIN (RSA PRIVATE|PRIVATE) KEY-----\r?\n?(?:[A-Za-z0-9+/=]+\r?\n?)*-----END (RSA PRIVATE|PRIVATE) KEY-----)\r?\n?$/;
    return pemRegex.test(value);
 }
 
@@ -387,6 +383,9 @@ function extractKey(asn1) {
          })
          .sort((a, b) => b.match - a.match);
 
+      Defs.match(asn1tocheck, types[0].type)
+
+      return asn1tocheck
       const isMatch = types[0].match == 1
 
       if (isMatch) {
@@ -396,6 +395,32 @@ function extractKey(asn1) {
 
       if (asn1tocheck.sub.length < 1) throw Error('Key is not found ')
       asn1tocheck = findLargestLengthObject(asn1tocheck.sub);
+   }
+}
+
+function parseKey(asn1){
+   const asn1Object = extractKey(asn1);
+   const type = asn1Object.def.description
+   if(['PKCS#8 private key', 'PKCS#1 RSA private key'].includes(type)!==true)throw Error('RSA Private Key is not found')
+
+   if(asn1Object.def.description=='PKCS#8 private key'){
+      //match RSA PrivateKey
+      Defs.match(asn1Object.sub[2].sub[0],Defs.commonTypes[3].type)
+      asn1Object.sequence = asn1Object.sub[2].sub[0].sub;
+   }
+   if(asn1Object.def.description=='PKCS#1 RSA private key') {
+      asn1Object.sequence = asn1Object.sub
+   }
+   asn1Object.getContent = getContent.bind(asn1Object)
+   
+   return asn1Object
+   function getContent(index){
+      const { header, length , stream :{enc, pos}} = this.sequence[index];
+      const end = pos + header + length;
+      const start = pos + header;
+      const values = Array.from(enc.subarray(start,end),e=>Number(e).toString(16).padStart(2,'0')).join('');
+      const bint = bigInt(values,16); 
+      return bint
    }
 }
 
@@ -473,7 +498,7 @@ export function I2OSP_uint8(x, xLen) {
  * @param {integer} xLen 
  * @returns {Array}
  */
-export function I2OSP_array(x, xLen) { // FIXME - x and xLen must be instanceof bigInt
+export function I2OSP_array(x, xLen) { // - x and xLen must be instanceof bigInt
    // Check if input is a non-negative integer
    let isValid = validate(x, [bigInt, 'number']);
    if (isValid instanceof TypeError) return isValid
